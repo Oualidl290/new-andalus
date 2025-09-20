@@ -553,25 +553,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🗺️ Roadmap
 
-### 2024 Q1
+### 2025 Q4
 - [ ] Real-time collaborative editing
 - [ ] Advanced search with Elasticsearch
 - [ ] Mobile application (React Native)
 - [ ] Plugin system architecture
-
-### 2024 Q2
 - [ ] Multi-tenant support
 - [ ] Advanced analytics dashboard
 - [ ] Internationalization (i18n)
 - [ ] White-label solutions
-
-### 2024 Q3
 - [ ] AI-powered content suggestions
 - [ ] Advanced workflow management
 - [ ] Enterprise SSO integration
 - [ ] Advanced caching strategies
-
-### 2024 Q4
 - [ ] Microservices architecture
 - [ ] GraphQL API
 - [ ] Advanced monitoring and observability
@@ -583,6 +577,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **[⭐ Star us on GitHub](https://github.com/new-andalus/platform)** • **[🐛 Report Bug](https://github.com/new-andalus/platform/issues)** • **[💡 Request Feature](https://github.com/new-andalus/platform/issues)**
 
-Made with ❤️ by the oualid and [contributors](https://github.com/new-andalus/platform/graphs/contributors).
+Made by oualid and [contributors](https://github.com/new-andalus/platform/graphs/contributors).
 
 </div>
