@@ -549,7 +549,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Issues**: [GitHub Issues](https://github.com/new-andalus/platform/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/new-andalus/platform/discussions)
 - **Discord**: [Join our community](https://discord.gg/newandalus)
-- **Email**: [support@newandalus.com](mailto:support@newandalus.com)
+- **Email**: [oualiddev.ba@gmail.com](mailto:support@newandalus.com)
 
 ## 🗺️ Roadmap
 
