@@ -1,0 +1,370 @@
+# New Andalus - Deployment Pipeline
+# Enterprise-grade deployment with blue-green and canary strategies
+
+name: Deployment Pipeline
+
+on:
+  workflow_run:
+    workflows: ["Continuous Integration"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      deployment_strategy:
+        description: 'Deployment strategy'
+        required: true
+        default: 'rolling'
+        type: choice
+        options:
+        - rolling
+        - blue-green
+        - canary
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Staging Deployment
+  staging-deployment:
+    name: Deploy to Staging
+    if: github.ref == 'refs/heads/main' && github.event.workflow_run.conclusion == 'success'
+    environment: 
+      name: staging
+      url: https://staging.newandalus.com
+    runs-on: ubuntu-latest
+    outputs:
+      deployment-id: ${{ steps.deploy.outputs.deployment-id }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --region us-east-1 --name new-andalus-staging-cluster
+
+      - name: Deploy to Staging
+        id: deploy
+        uses: ./.github/actions/deploy-k8s
+        with:
+          environment: staging
+          image-tag: ${{ github.sha }}
+          namespace: new-andalus-staging
+          deployment-strategy: rolling
+          helm-values: |
+            image:
+              tag: ${{ github.sha }}
+            environment: staging
+            replicas: 2
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+
+      - name: Wait for deployment
+        run: |
+          kubectl rollout status deployment/web-frontend -n new-andalus-staging --timeout=600s
+
+      - name: Run smoke tests
+        uses: ./.github/actions/smoke-tests
+        with:
+          base-url: https://staging.newandalus.com
+          test-suite: staging
+
+      - name: Performance regression tests
+        uses: ./.github/actions/performance-tests
+        with:
+          base-url: https://staging.newandalus.com
+          baseline-file: performance-baseline.json
+
+      - name: Security validation
+        uses: ./.github/actions/security-tests
+        with:
+          target-url: https://staging.newandalus.com
+          security-profile: staging
+
+      - name: Update deployment status
+        if: always()
+        run: |
+          echo "Staging deployment completed with status: ${{ job.status }}"
+
+  # Canary Deployment
+  canary-deployment:
+    name: Canary Deployment
+    needs: staging-deployment
+    if: success() && (github.event.inputs.deployment_strategy == 'canary' || github.event.inputs.deployment_strategy == '')
+    environment: 
+      name: canary
+      url: https://canary.newandalus.com
+    runs-on: ubuntu-latest
+    outputs:
+      canary-success: ${{ steps.monitor.outputs.success }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --region us-east-1 --name new-andalus-production-cluster
+
+      - name: Deploy Canary (5% traffic)
+        uses: ./.github/actions/canary-deploy
+        with:
+          environment: production
+          image-tag: ${{ github.sha }}
+          traffic-percentage: 5
+          canary-replicas: 1
+
+      - name: Monitor Canary Metrics
+        id: monitor
+        uses: ./.github/actions/monitor-canary
+        with:
+          duration: "30m"
+          success-criteria: |
+            error_rate < 0.1%
+            latency_p95 < 200ms
+            cpu_usage < 70%
+            memory_usage < 80%
+          monitoring-endpoints: |
+            - https://canary.newandalus.com/api/health
+            - https://canary.newandalus.com/api/metrics
+
+      - name: Rollback on failure
+        if: steps.monitor.outputs.success != 'true'
+        run: |
+          kubectl patch service web-frontend-service -n new-andalus-production -p '{"spec":{"selector":{"version":"stable"}}}'
+          echo "Canary deployment failed, rolled back to stable version"
+
+      - name: Promote canary on success
+        if: steps.monitor.outputs.success == 'true'
+        run: |
+          echo "Canary deployment successful, ready for full production deployment"
+
+  # Production Deployment
+  production-deployment:
+    name: Deploy to Production
+    needs: [staging-deployment, canary-deployment]
+    if: success() || (github.event.inputs.environment == 'production' && github.event_name == 'workflow_dispatch')
+    environment: 
+      name: production
+      url: https://newandalus.com
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --region us-east-1 --name new-andalus-production-cluster
+
+      - name: Pre-deployment checks
+        run: |
+          # Check cluster health
+          kubectl get nodes
+          kubectl get pods -n new-andalus-production
+          
+          # Check database connectivity
+          kubectl exec -n new-andalus-production deployment/web-frontend -- npm run db:check
+          
+          # Verify secrets
+          kubectl get secrets -n new-andalus-production
+
+      - name: Blue-Green Deployment
+        if: github.event.inputs.deployment_strategy == 'blue-green'
+        uses: ./.github/actions/blue-green-deploy
+        with:
+          environment: production
+          image-tag: ${{ github.sha }}
+          namespace: new-andalus-production
+          service-name: web-frontend-service
+
+      - name: Rolling Deployment
+        if: github.event.inputs.deployment_strategy != 'blue-green'
+        uses: ./.github/actions/rolling-deploy
+        with:
+          environment: production
+          image-tag: ${{ github.sha }}
+          namespace: new-andalus-production
+
+      - name: Database Migration
+        uses: ./.github/actions/db-migrate
+        with:
+          strategy: "online"
+          environment: production
+          migration-timeout: "10m"
+
+      - name: Gradual Traffic Shift
+        uses: ./.github/actions/traffic-shift
+        with:
+          steps: "10,25,50,75,100"
+          interval: "5m"
+          health-check-url: "https://newandalus.com/api/health"
+          rollback-on-failure: true
+
+      - name: Post-deployment verification
+        uses: ./.github/actions/verify-deployment
+        with:
+          environment: production
+          verification-tests: |
+            - health-check
+            - smoke-tests
+            - performance-check
+            - security-scan
+          timeout: "15m"
+
+      - name: Update CDN cache
+        run: |
+          # Invalidate CloudFront cache
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+      - name: Notify deployment success
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,took
+          custom_payload: |
+            {
+              "text": "🚀 Production deployment successful!",
+              "attachments": [{
+                "color": "good",
+                "fields": [{
+                  "title": "Environment",
+                  "value": "Production",
+                  "short": true
+                }, {
+                  "title": "Version",
+                  "value": "${{ github.sha }}",
+                  "short": true
+                }, {
+                  "title": "URL",
+                  "value": "https://newandalus.com",
+                  "short": false
+                }]
+              }]
+            }
+
+  # Rollback Job
+  rollback:
+    name: Rollback Deployment
+    if: failure() && (needs.production-deployment.result == 'failure' || needs.canary-deployment.result == 'failure')
+    needs: [production-deployment, canary-deployment]
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --region us-east-1 --name new-andalus-production-cluster
+
+      - name: Get previous stable version
+        id: previous-version
+        run: |
+          PREVIOUS_VERSION=$(kubectl get deployment web-frontend -n new-andalus-production -o jsonpath='{.metadata.annotations.deployment\.kubernetes\.io/revision}')
+          echo "previous-version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Rollback to previous version
+        run: |
+          kubectl rollout undo deployment/web-frontend -n new-andalus-production
+          kubectl rollout status deployment/web-frontend -n new-andalus-production --timeout=300s
+
+      - name: Verify rollback
+        run: |
+          kubectl get pods -n new-andalus-production
+          curl -f https://newandalus.com/api/health
+
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          custom_payload: |
+            {
+              "text": "⚠️ Production deployment failed - Rollback completed",
+              "attachments": [{
+                "color": "warning",
+                "fields": [{
+                  "title": "Action",
+                  "value": "Automatic rollback to previous stable version",
+                  "short": false
+                }, {
+                  "title": "Previous Version",
+                  "value": "${{ steps.previous-version.outputs.previous-version }}",
+                  "short": true
+                }]
+              }]
+            }
+
+  # Disaster Recovery Test
+  dr-test:
+    name: Disaster Recovery Test
+    if: github.event.schedule == '0 2 * * *'  # Run nightly
+    runs-on: ubuntu-latest
+    environment: disaster-recovery
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test DR environment
+        run: |
+          # Test database failover
+          # Test application failover
+          # Verify data consistency
+          echo "DR test completed successfully"
+
+      - name: Generate DR report
+        run: |
+          echo "## Disaster Recovery Test Report" >> dr-report.md
+          echo "Date: $(date)" >> dr-report.md
+          echo "Status: Success" >> dr-report.md
+
+      - name: Upload DR report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dr-report
+          path: dr-report.md

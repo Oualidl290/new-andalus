@@ -1,0 +1,104 @@
+MIT License
+
+Copyright (c) 2024 New Andalus Editorial Platform
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Third-Party Licenses
+
+This project includes third-party software components with their own licenses:
+
+### Next.js
+- License: MIT
+- Copyright: Vercel, Inc.
+- Source: https://github.com/vercel/next.js
+
+### React
+- License: MIT
+- Copyright: Meta Platforms, Inc. and affiliates
+- Source: https://github.com/facebook/react
+
+### TypeScript
+- License: Apache-2.0
+- Copyright: Microsoft Corporation
+- Source: https://github.com/microsoft/TypeScript
+
+### Tailwind CSS
+- License: MIT
+- Copyright: Tailwind Labs, Inc.
+- Source: https://github.com/tailwindlabs/tailwindcss
+
+### Radix UI
+- License: MIT
+- Copyright: WorkOS
+- Source: https://github.com/radix-ui/primitives
+
+### Drizzle ORM
+- License: Apache-2.0
+- Copyright: Drizzle Team
+- Source: https://github.com/drizzle-team/drizzle-orm
+
+### PostgreSQL
+- License: PostgreSQL License (similar to BSD or MIT)
+- Copyright: The PostgreSQL Global Development Group
+- Source: https://www.postgresql.org/
+
+### Redis
+- License: BSD 3-Clause
+- Copyright: Redis Ltd.
+- Source: https://github.com/redis/redis
+
+For a complete list of dependencies and their licenses, see package.json and run:
+npm list --depth=0
+
+---
+
+## Attribution
+
+When using this software, please include the following attribution:
+
+"Powered by New Andalus Editorial Platform - https://github.com/new-andalus/platform"
+
+## Commercial Use
+
+This software is free for commercial use under the MIT License. However, we appreciate:
+
+1. Attribution in your application or documentation
+2. Contributing improvements back to the community
+3. Reporting bugs and security issues
+4. Sharing your use case with the community
+
+## Support
+
+While this software is provided "as is" without warranty, the community provides support through:
+
+- GitHub Issues: https://github.com/new-andalus/platform/issues
+- GitHub Discussions: https://github.com/new-andalus/platform/discussions
+- Discord Community: https://discord.gg/New-Andalus
+- Documentation: https://docs.newandalus.com
+
+## Contributing
+
+By contributing to this project, you agree that your contributions will be licensed under the same MIT License that covers the project. See CONTRIBUTING.md for details.
+
+## Trademark
+
+"New Andalus" is a trademark of the New Andalus project. Use of the trademark is subject to our trademark policy.
