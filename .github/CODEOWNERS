@@ -1,0 +1,32 @@
+# Global code owners
+* @Oualidl290
+
+# Core application files
+/src/ @Oualidl290
+/package.json @Oualidl290
+/package-lock.json @Oualidl290
+
+# Docker and infrastructure
+/docker-compose.yml @Oualidl290
+/Dockerfile @Oualidl290
+/Dockerfile.dev @Oualidl290
+/kubernetes/ @Oualidl290
+/terraform/ @Oualidl290
+
+# CI/CD and workflows
+/.github/ @Oualidl290
+
+# Database and migrations
+/drizzle/ @Oualidl290
+/init.sql @Oualidl290
+/migrate-auth.sql @Oualidl290
+
+# Security and configuration
+/.env.example @Oualidl290
+/middleware.ts @Oualidl290
+/next.config.ts @Oualidl290
+
+# Documentation
+/README.md @Oualidl290
+/CONTRIBUTING.md @Oualidl290
+/SECURITY.md @Oualidl290
