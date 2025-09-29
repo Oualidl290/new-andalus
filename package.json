@@ -118,7 +118,7 @@
     "jsdom": "^27.0.0",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.4",
-    "tsx": "^4.20.5",
+    "tsx": "^4.20.6",
     "typescript": "^5",
     "vitest": "^3.2.4",
     "webpack-bundle-analyzer": "^4.10.2"
