@@ -66,7 +66,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-toast": "^1.2.15",
     "@tiptap/extension-character-count": "^3.4.4",
-    "@tiptap/extension-image": "^3.4.4",
+    "@tiptap/extension-image": "^3.6.2",
     "@tiptap/extension-link": "^3.4.4",
     "@tiptap/extension-placeholder": "^3.4.4",
     "@tiptap/pm": "^3.4.4",
